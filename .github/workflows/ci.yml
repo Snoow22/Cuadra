@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    name: API (lint, tipos, tests, build)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: inventario
+          POSTGRES_PASSWORD: inventario_ci
+          POSTGRES_DB: inventario_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U inventario -d inventario_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://inventario:inventario_ci@localhost:5432/inventario_test
+      SESSION_SECRET: secreto-solo-para-ci
+
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Los pasos siguientes se activan cuando exista api/package.json (fase 0).
+      - uses: actions/setup-node@v4
+        if: ${{ hashFiles('api/package.json') != '' }}
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Instalar dependencias
+        if: ${{ hashFiles('api/package.json') != '' }}
+        run: npm ci
+
+      - name: Lint
+        if: ${{ hashFiles('api/package.json') != '' }}
+        run: npm run lint
+
+      - name: Verificar tipos
+        if: ${{ hashFiles('api/package.json') != '' }}
+        run: npm run typecheck
+
+      - name: Migraciones
+        if: ${{ hashFiles('api/package.json') != '' }}
+        run: npm run migrate
+
+      - name: Tests
+        if: ${{ hashFiles('api/package.json') != '' }}
+        run: npm test
+
+      - name: Build
+        if: ${{ hashFiles('api/package.json') != '' }}
+        run: npm run build
+
+  web:
+    name: Web (lint, tipos, build)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Los pasos siguientes se activan cuando exista web/package.json (fase 0).
+      - uses: actions/setup-node@v4
+        if: ${{ hashFiles('web/package.json') != '' }}
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Instalar dependencias
+        if: ${{ hashFiles('web/package.json') != '' }}
+        run: npm ci
+
+      - name: Lint
+        if: ${{ hashFiles('web/package.json') != '' }}
+        run: npm run lint
+
+      - name: Verificar tipos
+        if: ${{ hashFiles('web/package.json') != '' }}
+        run: npm run typecheck
+
+      - name: Build
+        if: ${{ hashFiles('web/package.json') != '' }}
+        run: npm run build
