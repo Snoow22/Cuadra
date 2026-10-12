@@ -2,7 +2,7 @@
 
 **Inventario que cuadra.** Aplicación web para que un pequeño negocio lleve productos, compras, ventas y existencias en un solo lugar, con historial confiable y margen por venta calculado automáticamente.
 
-![CI](https://github.com/Snoow22/cuadra/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Snoow22/Cuadra/actions/workflows/ci.yml/badge.svg)
 
 > **Estado:** en construcción. Ver la [hoja de ruta](#hoja-de-ruta).
 
