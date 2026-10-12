@@ -1,24 +1,25 @@
 # Guía de contribución
 
-Aunque es un proyecto personal, se trabaja como uno de equipo para mostrar el proceso.
+Aunque es un proyecto personal, se trabaja como uno de equipo para mostrar el proceso. El detalle vive en `docs/`; esta página sólo resume y enlaza.
 
-## Flujo de trabajo
+## Dónde está cada cosa
 
-1. Cada historia de usuario (HU-XX) es un issue en GitHub.
-2. Se trabaja en una rama propia: `feat/hu-11-registrar-venta`, `fix/...`, `docs/...`.
-3. Se abre un pull request hacia `main` y la integración continua debe pasar antes de fusionar.
-4. Se avanza por rebanadas verticales: migración, API, tests e interfaz de una funcionalidad antes de pasar a la siguiente.
+| Necesito… | Documento |
+|---|---|
+| Levantar el proyecto en mi computador | [`docs/inicio-local.md`](docs/inicio-local.md) |
+| Saber cómo se nombran ramas y commits, y cómo se publican versiones | [`docs/ramas-y-versionado.md`](docs/ramas-y-versionado.md) |
+| Entender qué se construye y con qué reglas | [`docs/requisitos.md`](docs/requisitos.md) |
+| Saber por qué se decidió algo | [`docs/decisiones/`](docs/decisiones/) |
 
-## Commits
+## Flujo en cinco pasos
 
-Mensajes pequeños y descriptivos, en formato convencional:
+1. Cada historia de usuario (`HU-XX`) es un issue en GitHub.
+2. Se trabaja en una rama propia desde `main`: `feature/HU-11-registrar-venta`, `fix/...`, `docs/...`.
+3. Los commits siguen Conventional Commits e incluyen el código: `feat(HU-11): registrar venta con varias líneas`.
+4. Se abre un Pull Request hacia `main` con la plantilla, y la CI debe pasar.
+5. Se fusiona con *Squash and merge* y se borra la rama.
 
-```
-feat(ventas): descontar stock de forma atómica
-fix(productos): validar SKU duplicado
-docs(adr): registrar decisión de costo promedio
-test(ventas): cubrir ventas simultáneas
-```
+Se avanza por rebanadas verticales: migración, API, tests e interfaz de una funcionalidad antes de pasar a la siguiente.
 
 ## Decisiones técnicas
 

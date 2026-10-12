@@ -1,15 +1,24 @@
+## Historia de usuario
+Código: HU-XX — <nombre>
+Fase: N
+
 ## Qué cambia
+- 
 
-<!-- Resumen corto del cambio y de la historia de usuario que cubre (HU-XX). -->
+## Cómo probar
+1. 
 
-## Por qué
+## Criterios de aceptación
+- [ ] 
+- [ ] 
 
-<!-- Contexto o decisión detrás del cambio. Si hay una decisión nueva, enlaza el ADR. -->
+## Migraciones
+- [ ] No incluye migraciones
+- [ ] Incluye migraciones (probadas aplicar y deshacer en local)
 
-## Lista de verificación
-
-- [ ] Migración aplicada y reversible (si corresponde)
-- [ ] Validación de entrada y errores uniformes
-- [ ] Tests de integración pasando
-- [ ] Interfaz conectada (si corresponde)
-- [ ] Documentación o ADR actualizado
+## Checklist
+- [ ] Rebase sobre main actualizado
+- [ ] Lint, tipos y tests pasan en local
+- [ ] Sin secretos ni `.env` en el diff
+- [ ] Las reglas de negocio afectadas (RN-XX) tienen test
+- [ ] Documentación o ADR actualizado, si corresponde
