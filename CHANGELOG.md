@@ -13,3 +13,6 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ### Seguridad
 - HU-01: el login exige CSRF, responde 401 sin indicar qué campo falló y se bloquea (429) tras 5 fallos en un minuto por cuenta.
+
+### Corregido
+- El job `api` de la CI ejecutaba pasos de Node que nunca corrían; ahora instala Python 3.14 y corre `ruff`, `check`, `makemigrations --check` y `pytest`.

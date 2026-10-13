@@ -7,7 +7,7 @@ on:
 
 jobs:
   api:
-    name: API (lint, tipos, tests, build)
+    name: API (lint, check, migraciones, tests)
     runs-on: ubuntu-latest
 
     services:
@@ -26,9 +26,8 @@ jobs:
           --health-retries 10
 
     env:
-      NODE_ENV: test
       DATABASE_URL: postgresql://inventario:inventario_ci@localhost:5432/inventario_test
-      SESSION_SECRET: secreto-solo-para-ci
+      DJANGO_SECRET_KEY: secreto-solo-para-ci
 
     defaults:
       run:
@@ -37,37 +36,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Los pasos siguientes se activan cuando exista api/package.json (fase 0).
-      - uses: actions/setup-node@v4
-        if: ${{ hashFiles('api/package.json') != '' }}
+      - uses: actions/setup-python@v5
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: api/package-lock.json
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: api/requirements*.txt
 
       - name: Instalar dependencias
-        if: ${{ hashFiles('api/package.json') != '' }}
-        run: npm ci
+        run: pip install -r requirements-dev.txt
 
       - name: Lint
-        if: ${{ hashFiles('api/package.json') != '' }}
-        run: npm run lint
+        run: ruff check .
 
-      - name: Verificar tipos
-        if: ${{ hashFiles('api/package.json') != '' }}
-        run: npm run typecheck
+      - name: Check de Django
+        run: python manage.py check
 
-      - name: Migraciones
-        if: ${{ hashFiles('api/package.json') != '' }}
-        run: npm run migrate
+      - name: Migraciones al día
+        run: python manage.py makemigrations --check --dry-run
 
       - name: Tests
-        if: ${{ hashFiles('api/package.json') != '' }}
-        run: npm test
-
-      - name: Build
-        if: ${{ hashFiles('api/package.json') != '' }}
-        run: npm run build
+        run: pytest
 
   web:
     name: Web (lint, tipos, build)
