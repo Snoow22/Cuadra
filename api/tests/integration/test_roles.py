@@ -109,3 +109,40 @@ def test_contrasena_debil_da_400_y_no_crea_el_usuario(admin, password):
     assert respuesta.status_code == 400
     assert respuesta.json()["password"]
     assert not Usuario.objects.filter(email=NUEVO["email"]).exists()
+
+
+def test_crear_usuario_con_email_repetido_en_otra_mayuscula_da_400(admin):
+    cliente(admin).post("/usuarios", NUEVO, format="json")
+
+    respuesta = cliente(admin).post(
+        "/usuarios", {**NUEVO, "email": NUEVO["email"].upper()}, format="json"
+    )
+
+    assert respuesta.status_code == 400
+    assert Usuario.objects.filter(email__iexact=NUEVO["email"]).count() == 1
+
+
+def test_contrasena_parecida_al_nombre_da_400(admin):
+    datos = {**NUEVO, "nombre": "Beatriz", "password": "beatriz2026"}
+
+    respuesta = cliente(admin).post("/usuarios", datos, format="json")
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["password"]
+
+
+def test_crear_usuario_exige_token_csrf(admin):
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(admin)
+
+    sin_token = client.post("/usuarios", NUEVO, format="json")
+
+    assert sin_token.status_code == 403
+    assert "CSRF" in sin_token.json()["detail"]
+    assert not Usuario.objects.filter(email=NUEVO["email"]).exists()
+
+    # Con el token la misma petición pasa: el 403 anterior era por CSRF y no por el rol.
+    client.get("/auth/csrf")
+    token = client.cookies["csrftoken"].value
+    con_token = client.post("/usuarios", NUEVO, format="json", headers={"X-CSRFToken": token})
+    assert con_token.status_code == 201

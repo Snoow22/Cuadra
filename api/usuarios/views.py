@@ -37,7 +37,7 @@ class LoginView(APIView):
     def post(self, request):
         datos = LoginSerializer(data=request.data)
         datos.is_valid(raise_exception=True)
-        email = datos.validated_data["email"]
+        email = datos.validated_data["email"].strip().lower()
 
         if bloqueo.esta_bloqueado(email):
             return Response(
@@ -64,6 +64,13 @@ class UsuarioSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = ["id", "email", "nombre", "rol", "password"]
         read_only_fields = ["id"]
+
+    def validate_email(self, email):
+        # Antes de crear: el UniqueValidator automático distingue mayúsculas y no vería el choque.
+        email = email.strip().lower()
+        if Usuario.objects.filter(email=email).exists():
+            raise serializers.ValidationError("Ya existe un usuario con ese email.")
+        return email
 
     def validate(self, datos):
         # Con el usuario en memoria, el validador de similitud compara contra email y nombre.
