@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.test import Client
 from django.utils import timezone
 
@@ -123,3 +123,32 @@ def test_create_superuser_crea_un_admin():
     admin = Usuario.objects.create_superuser("jefa@cuadra.cl", "Jefa", CLAVE)
 
     assert admin.rol == Usuario.Rol.ADMIN
+
+
+def test_emails_que_solo_difieren_en_mayusculas_son_la_misma_cuenta():
+    primero = Usuario.objects.create_user("Ana@X.cl", "Ana", CLAVE)
+
+    assert primero.email == "ana@x.cl"
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Usuario.objects.create_user("ana@x.cl", "Otra Ana", CLAVE)
+
+
+def test_la_base_rechaza_emails_repetidos_sin_importar_mayusculas():
+    Usuario.objects.create_user("ana@x.cl", "Ana", CLAVE)
+    otro = Usuario.objects.create_user("beto@x.cl", "Beto", CLAVE)
+
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Usuario.objects.filter(pk=otro.pk).update(email="ANA@X.CL")
+
+
+def test_login_acepta_el_email_en_cualquier_mayuscula(client):
+    Usuario.objects.create_user("Ana@X.cl", "Ana", CLAVE)
+
+    assert login(client, email="ANA@x.CL").status_code == 200
+
+
+def test_email_demasiado_largo_da_400_y_no_revienta(client):
+    respuesta = login(client, email="a" * 280 + "@cuadra.cl")
+
+    assert respuesta.status_code == 400
+    assert not IntentoLoginFallido.objects.exists()

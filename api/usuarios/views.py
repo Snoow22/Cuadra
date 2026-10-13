@@ -1,14 +1,20 @@
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 from rest_framework import serializers, status
+from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import bloqueo
+from .models import Usuario
+from .permisos import EsAdmin
 
 
 @require_GET
@@ -19,7 +25,8 @@ def csrf(request):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    # 254 = largo de la columna `email`; sin tope, un email largo rompe al registrar el fallo.
+    email = serializers.EmailField(max_length=254)
     password = serializers.CharField(trim_whitespace=False)
 
 
@@ -32,7 +39,7 @@ class LoginView(APIView):
     def post(self, request):
         datos = LoginSerializer(data=request.data)
         datos.is_valid(raise_exception=True)
-        email = datos.validated_data["email"]
+        email = datos.validated_data["email"].strip().lower()
 
         if bloqueo.esta_bloqueado(email):
             return Response(
@@ -50,3 +57,45 @@ class LoginView(APIView):
 
         login(request, usuario)
         return Response({"id": usuario.pk, "nombre": usuario.nombre, "rol": usuario.rol})
+
+
+class UsuarioSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    class Meta:
+        model = Usuario
+        fields = ["id", "email", "nombre", "rol", "password"]
+        read_only_fields = ["id"]
+
+    def validate_email(self, email):
+        # Antes de crear: el UniqueValidator automático distingue mayúsculas y no vería el choque.
+        email = email.strip().lower()
+        if Usuario.objects.filter(email=email).exists():
+            raise serializers.ValidationError("Ya existe un usuario con ese email.")
+        return email
+
+    def validate(self, datos):
+        # Con el usuario en memoria, el validador de similitud compara contra email y nombre.
+        try:
+            validate_password(
+                datos["password"], Usuario(email=datos["email"], nombre=datos["nombre"])
+            )
+        except ValidationError as e:
+            raise serializers.ValidationError({"password": list(e.messages)}) from None
+        return datos
+
+    def create(self, validated_data):
+        try:
+            return Usuario.objects.create_user(**validated_data)
+        except IntegrityError:
+            # Dos peticiones simultáneas (doble clic) pasan la revisión previa; la base decide.
+            raise serializers.ValidationError(
+                {"email": "Ya existe un usuario con ese email."}
+            ) from None
+
+
+class UsuarioCreateView(CreateAPIView):
+    """Crear usuarios: solo admin (HU-02)."""
+
+    permission_classes = [EsAdmin]
+    serializer_class = UsuarioSerializer

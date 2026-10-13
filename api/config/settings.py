@@ -43,6 +43,19 @@ REST_FRAMEWORK = {
 # En producción (DEBUG=False) las cookies sólo viajan por HTTPS.
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = not DEBUG
 
+# Se aplican al crear usuarios (POST /usuarios y createsuperuser), no al verificar el login.
+_VALIDACION = "django.contrib.auth.password_validation"
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": f"{_VALIDACION}.UserAttributeSimilarityValidator",
+        # Por defecto sólo mira username/first_name/last_name/email; nuestro campo es `nombre`.
+        "OPTIONS": {"user_attributes": ["email", "nombre"]},
+    },
+    {"NAME": f"{_VALIDACION}.MinimumLengthValidator"},
+    {"NAME": f"{_VALIDACION}.CommonPasswordValidator"},
+    {"NAME": f"{_VALIDACION}.NumericPasswordValidator"},
+]
+
 ROOT_URLCONF = "config.urls"
 
 DATABASES = {"default": env.db("DATABASE_URL")}
