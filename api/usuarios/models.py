@@ -1,11 +1,12 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
-from django.db.models.functions import Now
+from django.db.models.functions import Lower, Now
 
 
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, nombre, password=None, **extra):
-        usuario = self.model(email=self.normalize_email(email), nombre=nombre, **extra)
+        # Minúsculas siempre: el email es el login y "Ana@x.cl" y "ana@x.cl" son la misma cuenta.
+        usuario = self.model(email=email.strip().lower(), nombre=nombre, **extra)
         usuario.set_password(password)
         usuario.save(using=self._db)
         return usuario
@@ -34,6 +35,7 @@ class Usuario(AbstractBaseUser):
     class Meta:
         db_table = "usuarios"
         constraints = [
+            models.UniqueConstraint(Lower("email"), name="usuarios_email_unico_sin_mayusculas"),
             models.CheckConstraint(
                 condition=models.Q(rol__in=["admin", "operador"]), name="usuarios_rol_valido"
             ),
