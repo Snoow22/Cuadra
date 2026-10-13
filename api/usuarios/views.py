@@ -4,11 +4,14 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 from rest_framework import serializers, status
+from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import bloqueo
+from .models import Usuario
+from .permisos import EsAdmin
 
 
 @require_GET
@@ -50,3 +53,22 @@ class LoginView(APIView):
 
         login(request, usuario)
         return Response({"id": usuario.pk, "nombre": usuario.nombre, "rol": usuario.rol})
+
+
+class UsuarioSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8, trim_whitespace=False)
+
+    class Meta:
+        model = Usuario
+        fields = ["id", "email", "nombre", "rol", "password"]
+        read_only_fields = ["id"]
+
+    def create(self, validated_data):
+        return Usuario.objects.create_user(**validated_data)
+
+
+class UsuarioCreateView(CreateAPIView):
+    """Crear usuarios: solo admin (HU-02)."""
+
+    permission_classes = [EsAdmin]
+    serializer_class = UsuarioSerializer
