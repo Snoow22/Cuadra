@@ -29,3 +29,11 @@ pgdata/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/

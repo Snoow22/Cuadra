@@ -90,7 +90,7 @@ git push --force-with-lease                  # nunca --force a secas
 
 ### 2.3 Terminar una historia
 
-1. Rebase final sobre `origin/main` y verificación local: lint, tipos, tests y build (ver `docs/inicio-local.md`).
+1. Rebase final sobre `origin/main` y verificación local: lint y tests, más el build si tocaste el frontend (ver `docs/inicio-local.md`).
 2. Abrir un Pull Request **hacia `main`** con la plantilla de la sección 8.3.
 3. Esperar la CI en verde.
 4. **Revisión:**
@@ -114,7 +114,7 @@ El título del PR sigue el mismo formato, porque es el que queda en `main` tras 
 |---|---|---|
 | `feat` | Funcionalidad nueva | `feat(HU-11): registrar venta con varias líneas` |
 | `fix` | Corrección de error | `fix(HU-12): evitar stock negativo en ventas simultáneas` |
-| `refactor` | Cambio interno sin alterar comportamiento | `refactor(RNF-01): validación de entrada con Zod` |
+| `refactor` | Cambio interno sin alterar comportamiento | `refactor(RNF-01): validación de entrada en serializers` |
 | `perf` | Mejora de rendimiento | `perf(RNF-04): índice en movimientos por producto y fecha` |
 | `test` | Tests | `test(HU-12): diez ventas en paralelo sobre stock 5` |
 | `docs` | Documentación | `docs: guía de ramas y versionado` |
@@ -159,10 +159,10 @@ No se usan versiones candidatas (`-rc.N`), porque no hay un ambiente de pruebas 
 
 ### Dónde vive el número de versión
 
-- `package.json` de `api/` y de `web/` (`"version": "0.2.0"`), ambos con el mismo número.
+- `api/config/__init__.py` (`__version__ = "0.2.0"`) y `web/package.json` (`"version": "0.2.0"`), ambos con el mismo número.
 - Tag anotado de Git sobre `main`.
 - `CHANGELOG.md` en la raíz.
-- Opcional: que `/health` incluya la versión desplegada, útil para confirmar qué hay en la demo.
+- `/health` devuelve la versión desplegada, útil para confirmar qué hay en la demo.
 
 ---
 
@@ -186,10 +186,8 @@ git switch main
 git pull
 git switch -c chore/release-v0.2.0
 
-# Subir la versión en ambos package.json, sin crear tag todavía
-cd api
-npm version 0.2.0 --no-git-tag-version
-cd ../web
+# Subir la versión, sin crear tag todavía: editar __version__ en api/config/__init__.py y, en web/:
+cd web
 npm version 0.2.0 --no-git-tag-version
 cd ..
 
@@ -246,15 +244,16 @@ No hay rama `hotfix`: un error es un `fix/` que sigue el mismo flujo que cualqui
 
 ## 7. Migraciones de base de datos
 
-Es el principal foco de conflicto entre ramas. La herramienta de migraciones se elige en la fase 1; los nombres exactos de los scripts se documentan aquí cuando exista.
+Es el principal foco de conflicto entre ramas. Se usan las migraciones de Django (ADR-007).
 
-1. **Una migración por cambio lógico**, siempre reversible.
-2. Nombre con marca de tiempo y el código de la historia, por ejemplo `..._HU-03_crear-tabla-productos`.
-3. **Antes del merge**, rebase sobre `main` y verificación del ciclo completo en una base local desechable: deshacer todo y volver a aplicar.
-4. Nunca editar una migración que ya está en `main`; si hay que corregir, se crea una migración nueva.
-5. El esquema sólo cambia mediante migraciones. Prohibido modificar tablas a mano en la demo o sincronizar el esquema automáticamente con un ORM.
-6. Las restricciones que protegen las reglas de negocio (`CHECK`, `UNIQUE`, claves foráneas) viven en migraciones (RNF-05).
-7. Si dos ramas necesitan tocar la misma tabla, se secuencian: una espera el merge de la otra.
+1. **Una migración por cambio lógico**, siempre reversible. Django deduce la reversa de las operaciones de esquema; en `RunPython` hay que escribirla.
+2. Se generan con el código de la historia en el nombre: `python manage.py makemigrations <app> -n HU_03_crear_producto`.
+3. **El modelo y su migración van en el mismo commit.** La CI falla si falta una (`makemigrations --check`).
+4. **Antes del merge**, rebase sobre `main` y verificación del ciclo completo en una base local desechable: `python manage.py migrate <app> zero` y luego `python manage.py migrate`.
+5. Nunca editar una migración que ya está en `main`; si hay que corregir, se crea una migración nueva.
+6. El esquema sólo cambia mediante migraciones. Prohibido modificar tablas a mano en la demo.
+7. Las restricciones que protegen las reglas de negocio (`CheckConstraint`, `UniqueConstraint`, claves foráneas) se declaran en el modelo (`Meta.constraints`) y llegan a la base por migración (RNF-05).
+8. Si dos ramas necesitan tocar la misma tabla, se secuencian: una espera el merge de la otra.
 
 ---
 
@@ -267,7 +266,7 @@ Es el principal foco de conflicto entre ramas. La herramienta de migraciones se 
 | Requerir Pull Request antes del merge | ✅ |
 | Aprobaciones requeridas | 0 si trabajas solo (GitHub no deja aprobar el propio PR) · 1 si hay otro integrante |
 | Descartar aprobaciones al subir nuevos commits | ✅ |
-| Requerir que pasen los checks `API (lint, tipos, tests, build)` y `Web (lint, tipos, build)` | ✅ |
+| Requerir que pasen los checks `API (lint, check, tests)` y `Web (lint, tipos, build)` | ✅ |
 | Requerir rama actualizada antes del merge | ✅ |
 | Prohibir force push | ✅ |
 | Prohibir eliminación | ✅ |
@@ -304,7 +303,7 @@ Fase: N
 
 ## Checklist
 - [ ] Rebase sobre main actualizado
-- [ ] Lint, tipos y tests pasan en local
+- [ ] Lint y tests pasan en local
 - [ ] Sin secretos ni `.env` en el diff
 - [ ] Las reglas de negocio afectadas (RN-XX) tienen test
 - [ ] Documentación o ADR actualizado, si corresponde
@@ -312,9 +311,9 @@ Fase: N
 
 ### 8.4 Archivos que nunca se versionan
 
-Ver `.gitignore` del repositorio: `.env`, `node_modules/`, `dist/`, `coverage/`, logs y datos locales de Docker.
+Ver `.gitignore` del repositorio: `.env`, `.venv/`, `__pycache__/`, `node_modules/`, `dist/`, `coverage/`, logs y datos locales de Docker.
 
-Cuidado con copiar de Limpiecito la regla `*.sql`: allí se ignora porque los volcados no se suben, pero en Cuadra las migraciones pueden ser archivos SQL. Si necesitas ignorar volcados, usa `*.dump` o una carpeta `backups/`.
+Los volcados de la base de datos no se suben: si necesitas ignorarlos, usa `*.dump` o una carpeta `backups/`.
 
 ---
 
@@ -325,7 +324,7 @@ Pueden copiarse tal cual a un `CLAUDE.md` en la raíz del repositorio.
 1. Trabaja siempre en una rama `feature/<código>-<desc>`, `refactor/<código>-<desc>` o `fix/<desc>` creada desde `main` actualizado.
 2. **Nunca** hagas commit ni push directo a `main`, ni crees tags.
 3. Una historia por rama; commits en formato Conventional Commits, incluyendo el código.
-4. Antes de terminar: rebase sobre `origin/main`, lint, tipos y tests pasando, y migraciones verificadas (aplicar y deshacer).
+4. Antes de terminar: rebase sobre `origin/main`, lint (`ruff`) y tests (`pytest`) pasando, y migraciones verificadas (aplicar y deshacer).
 5. Termina abriendo el Pull Request con la plantilla; la revisión y el merge los hace la persona.
 6. No uses `git push --force`; si es necesario, sólo `--force-with-lease` y sólo en tu propia rama.
 7. Respeta `docs/requisitos.md` y los ADR de `docs/decisiones/`. Si una tarea contradice una decisión registrada, avisa en vez de cambiarla.

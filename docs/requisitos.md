@@ -1,4 +1,4 @@
-# Documento de requisitos — Inventario para pequeños negocios
+# Documento de requisitos — Cuadra (inventario para pequeños negocios)
 
 > Versión 1.0 · Estado: aprobado para iniciar desarrollo
 > Este documento es la fuente de verdad de lo que se construye en la v1. Si una decisión cambia, se actualiza aquí y se registra en `docs/decisiones/`.
@@ -50,6 +50,7 @@ Cada una tiene su registro en `docs/decisiones/`.
 | ADR-004 | Un solo negocio, con roles `admin` y `operador`. |
 | ADR-005 | Nada se borra: los productos se desactivan y los movimientos se corrigen con uno inverso. |
 | ADR-006 | Dinero en enteros (CLP), nunca `float`. |
+| ADR-007 | Backend en Django con PostgreSQL. |
 
 ## 4. Glosario
 
@@ -163,14 +164,14 @@ Criterios en formato Dado / Cuando / Entonces, resumidos. ★ marca las de mayor
 
 | ID | Requisito |
 |---|---|
-| RNF-01 | Toda entrada se valida (Zod) y los errores tienen un formato uniforme. |
-| RNF-02 | Contraseñas con hash (bcrypt o argon2). Ningún secreto en el repositorio; solo `.env.example`. |
+| RNF-01 | Toda entrada se valida (serializers de Django REST Framework) y los errores tienen un formato uniforme. |
+| RNF-02 | Contraseñas con hash (los hashers de Django). Ningún secreto en el repositorio; solo `.env.example`. |
 | RNF-03 | Un test de integración por cada regla RN-01 a RN-09, contra PostgreSQL real. |
 | RNF-04 | Listados paginados, con respuesta menor a 300 ms con 10.000 productos (se mide y se documenta). |
 | RNF-05 | Restricciones en la base de datos (`CHECK`, `UNIQUE`, claves foráneas) que protejan las reglas aunque falle la API. |
 | RNF-06 | Demo desplegada con datos de ejemplo y credenciales de prueba. |
 | RNF-07 | Todo el sistema levanta localmente con `docker compose up`. |
-| RNF-08 | CI en cada push: lint, tipos, tests y build. |
+| RNF-08 | CI en cada push: lint, tests y build, según corresponda a `api/` y `web/`. |
 
 ## 9. Modelo de datos (borrador)
 
@@ -207,6 +208,16 @@ RETURNING stock_actual;
 ```
 
 Si no devuelve fila, no había stock suficiente y se hace rollback de toda la venta. Este caso se verifica con HU-12.
+
+En Django se expresa con el ORM, dentro de `transaction.atomic()`, y genera el mismo SQL:
+
+```python
+filas = Producto.objects.filter(pk=pk, stock_actual__gte=cantidad).update(
+    stock_actual=F("stock_actual") - cantidad
+)
+if filas == 0:
+    ...  # no había stock suficiente: se revierte toda la venta
+```
 
 ## 11. Plan de entrega
 

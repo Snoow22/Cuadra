@@ -10,6 +10,7 @@ Cada archivo documenta una decisión técnica: el contexto, qué se decidió, qu
 | [ADR-004](ADR-004-un-negocio-dos-roles.md) | Un solo negocio y dos roles | Aceptada |
 | [ADR-005](ADR-005-nada-se-borra.md) | Nada se borra | Aceptada |
 | [ADR-006](ADR-006-dinero-en-enteros.md) | Dinero en enteros | Aceptada |
+| [ADR-007](ADR-007-backend-django.md) | Backend en Django | Aceptada |
 
 ## Plantilla
 

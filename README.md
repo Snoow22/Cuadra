@@ -46,6 +46,7 @@ El detalle completo está en [`docs/requisitos.md`](docs/requisitos.md).
 | Acceso | Un negocio, dos roles ([ADR-004](docs/decisiones/ADR-004-un-negocio-dos-roles.md)) |
 | Historial | Nada se borra ([ADR-005](docs/decisiones/ADR-005-nada-se-borra.md)) |
 | Dinero | Enteros en CLP, nunca `float` ([ADR-006](docs/decisiones/ADR-006-dinero-en-enteros.md)) |
+| Backend | Django con PostgreSQL ([ADR-007](docs/decisiones/ADR-007-backend-django.md)) |
 
 ### Un problema real: ventas simultáneas
 
@@ -64,9 +65,9 @@ Si no devuelve fila, no había stock suficiente y se revierte toda la venta. Un 
 
 ```mermaid
 flowchart LR
-    U["Navegador<br/>React + Vite"] -->|HTTP JSON| R["Rutas"]
-    subgraph API["API · Node.js + TypeScript"]
-        R --> C["Controladores"] --> S["Servicios<br/>reglas de negocio"] --> P["Repositorios"]
+    U["Navegador<br/>React + Vite"] -->|HTTP JSON| R["URLs"]
+    subgraph API["API · Django"]
+        R --> C["Vistas y serializers"] --> S["Servicios<br/>reglas de negocio"] --> P["Modelos (ORM)"]
     end
     P --> D[("PostgreSQL")]
 ```
@@ -90,9 +91,9 @@ erDiagram
 ## Stack
 
 - **Frontend:** React, Vite, React Router, TanStack Query
-- **API:** Node.js, TypeScript, Express o Fastify, Zod
+- **API:** Python y Django (más Django REST Framework desde el primer endpoint)
 - **Base de datos:** PostgreSQL
-- **Pruebas:** Vitest, Supertest, contra PostgreSQL real
+- **Pruebas:** pytest con pytest-django, contra PostgreSQL real; `ruff` para el lint
 - **CI:** GitHub Actions
 - **Contenedores:** Docker y Docker Compose
 
@@ -100,15 +101,13 @@ erDiagram
 
 ```
 cuadra/
-├── api/                  # API (Node.js + TypeScript)
-│   ├── src/
-│   │   ├── config/       # Variables de entorno y configuración
-│   │   ├── db/migrations/# Migraciones SQL versionadas
-│   │   ├── middleware/   # Autenticación, errores, validación
-│   │   ├── routes/       # Definición de rutas
-│   │   ├── controllers/  # Entrada/salida HTTP
-│   │   ├── services/     # Reglas de negocio
-│   │   └── repositories/ # Acceso a datos
+├── api/                  # API (Django)
+│   ├── manage.py
+│   ├── config/           # Configuración del proyecto (settings, urls, /health)
+│   ├── requirements.txt  # Dependencias de la API (y requirements-dev.txt)
+│   ├── pyproject.toml    # Configuración de pytest y ruff
+│   ├── <app>/            # Una app por dominio, se agrega con cada historia:
+│   │                     # models, migrations, serializers, views y services
 │   └── tests/
 │       ├── unit/
 │       └── integration/  # Contra PostgreSQL real
@@ -129,7 +128,7 @@ cuadra/
 
 ## Cómo correrlo localmente
 
-Requisitos: Node.js 20 o superior, Docker y Docker Compose.
+Requisitos: Python 3.12 o superior, Node.js 20 o superior (para el frontend), Docker y Docker Compose.
 
 ```bash
 # 1. Variables de entorno
@@ -138,14 +137,18 @@ cp .env.example .env
 # 2. Base de datos
 docker compose up -d db
 
-# 3. API (disponible tras la fase 0)
-cd api && npm install && npm run dev
+# 3. API
+cd api
+python -m venv .venv
+source .venv/bin/activate        # en Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+python manage.py runserver
 
 # 4. Frontend (disponible tras la fase 0)
 cd web && npm install && npm run dev
 ```
 
-_Los pasos 3 y 4 se completan al terminar el esqueleto de la fase 0._
+La guía paso a paso está en [`docs/inicio-local.md`](docs/inicio-local.md). _El paso 4 se completa al terminar el esqueleto de la fase 0._
 
 ### Variables de entorno
 
@@ -154,7 +157,9 @@ Todas están documentadas en [`.env.example`](.env.example). Nunca se sube `.env
 ## Pruebas
 
 ```bash
-cd api && npm test
+cd api
+ruff check .
+pytest
 ```
 
 Los tests de integración usan una base PostgreSQL real, porque las reglas importantes viven en las transacciones.
@@ -176,6 +181,8 @@ Se avanza por rebanadas verticales: cada funcionalidad se completa (migración, 
 ## Documentación
 
 - [Requisitos, reglas de negocio e historias de usuario](docs/requisitos.md)
+- [Inicio del proyecto en local](docs/inicio-local.md)
+- [Guía de ramas y versionado](docs/ramas-y-versionado.md)
 - [Registros de decisiones (ADR)](docs/decisiones/)
 
 ## Contribuir
