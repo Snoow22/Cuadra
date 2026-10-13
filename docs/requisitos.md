@@ -51,6 +51,7 @@ Cada una tiene su registro en `docs/decisiones/`.
 | ADR-005 | Nada se borra: los productos se desactivan y los movimientos se corrigen con uno inverso. |
 | ADR-006 | Dinero en enteros (CLP), nunca `float`. |
 | ADR-007 | Backend en Django con PostgreSQL. |
+| ADR-008 | Sesión con cookie de Django y CSRF; bloqueo de login por cuenta en una tabla de PostgreSQL. |
 
 ## 4. Glosario
 
