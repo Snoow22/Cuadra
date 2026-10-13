@@ -11,6 +11,7 @@ Cada archivo documenta una decisión técnica: el contexto, qué se decidió, qu
 | [ADR-005](ADR-005-nada-se-borra.md) | Nada se borra | Aceptada |
 | [ADR-006](ADR-006-dinero-en-enteros.md) | Dinero en enteros | Aceptada |
 | [ADR-007](ADR-007-backend-django.md) | Backend en Django | Aceptada |
+| [ADR-008](ADR-008-sesion-con-cookie-y-bloqueo-de-login.md) | Sesión con cookie y bloqueo de login en PostgreSQL | Aceptada |
 
 ## Plantilla
 
