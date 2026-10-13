@@ -71,6 +71,7 @@ Luego:
 ```bash
 pip install -r requirements-dev.txt
 python manage.py migrate         # crea las tablas
+python manage.py createsuperuser # primer usuario admin (pide email, nombre y contraseña)
 python manage.py runserver       # levanta la API en http://localhost:8000
 ```
 
