@@ -96,3 +96,16 @@ def test_crear_usuario_con_email_repetido_da_400(admin):
 
     assert respuesta.status_code == 400
     assert Usuario.objects.filter(email=NUEVO["email"]).count() == 1
+
+
+@pytest.mark.parametrize(
+    "password",
+    ["corta1", "12345678901", "password123", "nuevo@cuadra.cl"],
+    ids=["muy_corta", "solo_numeros", "comun", "parecida_al_email"],
+)
+def test_contrasena_debil_da_400_y_no_crea_el_usuario(admin, password):
+    respuesta = cliente(admin).post("/usuarios", {**NUEVO, "password": password}, format="json")
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["password"]
+    assert not Usuario.objects.filter(email=NUEVO["email"]).exists()

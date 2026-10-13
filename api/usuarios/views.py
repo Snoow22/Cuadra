@@ -1,4 +1,6 @@
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
@@ -56,12 +58,22 @@ class LoginView(APIView):
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8, trim_whitespace=False)
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
 
     class Meta:
         model = Usuario
         fields = ["id", "email", "nombre", "rol", "password"]
         read_only_fields = ["id"]
+
+    def validate(self, datos):
+        # Con el usuario en memoria, el validador de similitud compara contra email y nombre.
+        try:
+            validate_password(
+                datos["password"], Usuario(email=datos["email"], nombre=datos["nombre"])
+            )
+        except ValidationError as e:
+            raise serializers.ValidationError({"password": list(e.messages)}) from None
+        return datos
 
     def create(self, validated_data):
         return Usuario.objects.create_user(**validated_data)
