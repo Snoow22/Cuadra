@@ -145,3 +145,10 @@ def test_login_acepta_el_email_en_cualquier_mayuscula(client):
     Usuario.objects.create_user("Ana@X.cl", "Ana", CLAVE)
 
     assert login(client, email="ANA@x.CL").status_code == 200
+
+
+def test_email_demasiado_largo_da_400_y_no_revienta(client):
+    respuesta = login(client, email="a" * 280 + "@cuadra.cl")
+
+    assert respuesta.status_code == 400
+    assert not IntentoLoginFallido.objects.exists()

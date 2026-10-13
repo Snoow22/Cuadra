@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
@@ -24,7 +25,8 @@ def csrf(request):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    # 254 = largo de la columna `email`; sin tope, un email largo rompe al registrar el fallo.
+    email = serializers.EmailField(max_length=254)
     password = serializers.CharField(trim_whitespace=False)
 
 
@@ -83,7 +85,13 @@ class UsuarioSerializer(serializers.ModelSerializer):
         return datos
 
     def create(self, validated_data):
-        return Usuario.objects.create_user(**validated_data)
+        try:
+            return Usuario.objects.create_user(**validated_data)
+        except IntegrityError:
+            # Dos peticiones simultáneas (doble clic) pasan la revisión previa; la base decide.
+            raise serializers.ValidationError(
+                {"email": "Ya existe un usuario con ese email."}
+            ) from None
 
 
 class UsuarioCreateView(CreateAPIView):

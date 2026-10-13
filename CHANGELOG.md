@@ -19,4 +19,6 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 ### Corregido
 - HU-02: los emails se guardan siempre en minúscula y son únicos sin distinguir mayúsculas (`Ana@x.cl` y `ana@x.cl` eran cuentas distintas y el login exigía la misma mayúscula). La migración `0002` pasa a minúscula los emails existentes.
 - HU-02: el validador de similitud de contraseña ahora compara también con el `nombre`.
+- HU-01: un email de más de 254 caracteres en el login respondía 500 al registrar el fallo; ahora responde 400.
+- HU-02: crear dos veces el mismo email al mismo tiempo (doble clic) respondía 500; ahora responde 400.
 - El job `api` de la CI ejecutaba pasos de Node que nunca corrían; ahora instala Python 3.14 y corre `ruff`, `check`, `makemigrations --check` y `pytest`.

@@ -1,10 +1,12 @@
 import pytest
 from rest_framework.response import Response
 from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
+from rest_framework.validators import UniqueValidator
 from rest_framework.views import APIView
 
 from usuarios.models import Usuario
 from usuarios.permisos import EsAdmin, EsOperadorOAdmin
+from usuarios.views import UsuarioSerializer
 
 pytestmark = pytest.mark.django_db
 
@@ -146,3 +148,24 @@ def test_crear_usuario_exige_token_csrf(admin):
     token = client.cookies["csrftoken"].value
     con_token = client.post("/usuarios", NUEVO, format="json", headers={"X-CSRFToken": token})
     assert con_token.status_code == 201
+
+
+def test_carrera_al_crear_el_mismo_email_da_400_y_no_500(admin, monkeypatch):
+    cliente(admin).post("/usuarios", NUEVO, format="json")
+    # Simula la carrera: las dos revisiones previas de duplicados (la nuestra y el UniqueValidator
+    # automático de DRF) no ven todavía al otro request, y el choque llega hasta la base.
+    monkeypatch.setattr(UsuarioSerializer, "validate_email", lambda self, email: email)
+    monkeypatch.setattr(UniqueValidator, "__call__", lambda self, value, serializer_field: None)
+
+    respuesta = cliente(admin).post("/usuarios", NUEVO, format="json")
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["email"]
+
+
+def test_admin_desactivado_pierde_el_acceso_aunque_tenga_sesion(admin):
+    client = cliente(admin)
+    Usuario.objects.filter(pk=admin.pk).update(activo=False)
+
+    assert client.post("/usuarios", NUEVO, format="json").status_code == 403
+    assert not Usuario.objects.filter(email=NUEVO["email"]).exists()
